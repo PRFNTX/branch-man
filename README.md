@@ -1,8 +1,7 @@
 setup: source the branch-man file in your bash profile.
 view commands with `$ branch-man`
 
-###COMMANDS:
-COMMANDS:
+### COMMANDS:
 - develop: switch to branch 'develop' and pull
 - develop-n(ew) [name]: create a new tracked branch from branch 'develop'
 - master-n(ew) [name]: create a new tracked branch from master

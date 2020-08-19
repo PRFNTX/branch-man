@@ -204,9 +204,10 @@ branch-init() {
 
 branch-man() {
   echo "  COMMANDS:"
-  echo "    - develop: switch to develop and pull"
-  echo "    - develop-n(ew) [name]: create a new tracked branch from develop"
-  echo "    - hotfix-n [name]: create a new tracked branch from master"
+  echo "    - develop: switch to branch 'develop' and pull"
+  echo "    - develop-n(ew) [name]: create a new tracked branch from branch 'develop'"
+  echo "    - master-n(ew) [name]: create a new tracked branch from master"
+  echo "    - hotfix-n(ew) [name]: redundant, same as above"
   echo "    - branch: show current branch name"
   echo "    - branch-save: write local/progress to file"
   echo "    - branch-init: fill local/progress from file"
@@ -220,12 +221,14 @@ branch-man() {
   echo "    - normalize [regex]: removes mathing branch from the list of priority branches"
   echo "    - push: push current branch, create origin if not exists"
   echo "    - checkout [l/p/s] [num]: checkout (l)local, p(progress) s(priority) branch [num]"
-  echo "    - set-feature: sets current branch as 'feature' branch BROKEN"
-  echo "    - feature-n(ew) [branch-name]: creates a new branch off of the current feature branch BROKEN"
+  echo "    - set-feature: BROKEN sets current branch as 'feature' branch"
+  echo "    - feature-n(ew) [branch-name]: BROKEN creates a new branch off of the current feature branch"
 }
 
 alias develop='git checkout develop && git pull'
 alias develop-new='develop-n'
 alias branch-new='branch-n'
-alias hotfix-new='hotfix-n'
+alias hotfix-new='master-n'
+alias master-new='master-n'
+alias hotfix-n='master-n'
 alias feature-new='feature-n'

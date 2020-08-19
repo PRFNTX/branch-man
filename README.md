@@ -1,6 +1,13 @@
 setup: source the branch-man file in your bash profile.
 view commands with `$ branch-man`
 
+general workflow:
+
+- create a branch with `branch/master/develop-n [name]`
+- `branch-l` to see it
+- when your changes are committed use `push` to push the branch, (automatically --set-upstream, and moves to in progress from local)
+- with multiple branches use `checkout [p/l] [num]` to switch to a branch visible in `branch-l`
+
 ### COMMANDS:
 - develop: switch to branch 'develop' and pull
 - develop-n(ew) [name]: create a new tracked branch from branch 'develop'

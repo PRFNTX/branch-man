@@ -1,0 +1,231 @@
+alias branch='git branch | grep \* | cut -d " " -f2'
+
+local=()
+progress=()
+priority=()
+feature="develop"
+
+branch-a() {
+if git show-ref --verify refs/heads/$1 | wc -l | grep 0; then
+    echo "branch $1 not found"
+    return
+else
+    echo "tracking branch $1"
+fi
+if git ls-remote --heads origin $1 | wc -l | grep 0; then
+    local=(${local[@]/$1})
+    local+=($1)
+else
+    progress=(${progress[@]/$1})
+    progress+=($1)
+fi
+branch-l
+}
+
+set-feature() {
+    feature=${branch}
+}
+
+branch-m() {
+  current=$(branch)
+  if [[ -z $1 ]]; then
+      echo "Requires branch name"
+      return
+  fi
+  local=(${local[@]/$current})
+  git branch -m $1
+  for i in "${local[@]}"; do
+      if [[ $current == $i ]]; then
+          local=(${local[@]/$1})
+          local+=($1)
+          echo "renamed $current to $1 in local"
+          branch-l
+          return
+      fi
+  done
+  for j in "${progress[@]}"; do
+      if [[ $current == $j ]]; then
+          progress=(${progress[@]/$current})
+          local=(${local[@]/$1})
+          local+=($1)
+          echo "renamed $current to $1 in progress, moved to local"
+          branch-l
+          return
+      fi
+  done
+  branch-a $1
+}
+
+branch-n() {
+  git checkout -b $1
+  local=(${local[@]/$1})
+  local+=($1)
+  branch-l
+}
+
+branch-na() {
+  local=()
+  progress=()
+}
+
+branch-l() {
+  current=$(branch)
+  iscur=""
+  echo "Local Branches:"
+  lnum=0
+  pnum=0
+  snum=0
+  for i in "${local[@]}"; do
+      if [[ $i == $current ]]; then
+          iscur="*"
+      else
+          iscur=""
+      fi
+      echo "  $lnum: $i$iscur"
+      lnum=$((lnum + 1))
+  done
+  echo "Branches in Progress:"
+  for j in "${progress[@]}"; do
+      if [[ $j == $current ]]; then
+          iscur="*"
+      else
+          iscur=""
+      fi
+      echo "  $pnum $j$iscur"
+      pnum=$((pnum + 1))
+  done
+  echo "Priority Branches:"
+  for k in "${priority[@]}"; do
+      if [[ $k == $current ]]; then
+          iscur="*"
+      else
+          iscur=""
+      fi
+      echo "  $snum $k$iscur"
+      snum=$((snum + 1))
+  done
+}
+
+push() {
+  thisBranch=$(git branch | grep \* | cut -d " " -f2)
+  if git ls-remote --heads origin $1 | wc -l; then
+      git push --set-upstream origin $thisBranch
+      local=(${local[@]/$thisBranch})
+      progress=(${progress[@]/$thisBranch})
+      progress+=($thisBranch)
+      echo "Pushed new branch $thisBranch"
+      branch-l
+      return
+  else
+      git push
+      echo "pushed branch $thisBranch"
+      branch-l
+      return
+    fi
+}
+
+branch-c() {
+  reggie=$1
+  if [[ -n $reggie ]]; then
+      local=(${local[@]/*$reggie*/})
+      progress=(${progress[@]/*$reggie*/})
+  fi
+  branch-l
+}
+
+prioritize() {
+if [[ $1 == "l" ]]; then
+    add=${local[$2]}
+    if [[ -n $add ]]; then
+        priority=(${priority[@]/$2})
+        priority+=($add)
+        branch-c $add
+    fi
+fi
+if [[ $1 == "p" ]]; then
+    add=${progress[$2]}
+    if [[ -n $add ]]; then
+        priority=(${priority[@]/$2})
+        priority+=($add)
+        branch-c $add
+    fi
+fi
+}
+
+normalize() {
+  reggie=$1
+  if [[ -n $reggie ]]; then
+      priority=(${priority[@]/*$reggie*/})
+  fi
+  branch-l
+}
+
+hotfix-n() {
+  git checkout master
+  git pull
+  branch-n $1
+}
+
+develop-n() {
+  git checkout develop
+  git pull
+  branch-n $1
+}
+
+feature-n() {
+    git checkout ${feature}
+    git pull
+    branch-n $1
+}
+
+checkout() {
+    if [[ $1 == "l" ]]; then
+        git checkout ${local[$2]}
+    fi
+    if [[ $1 == "s" ]]; then
+        git checkout ${priority[$2]}
+    fi
+    if [[ $1 == "p" ]]; then
+        git checkout ${progress[$2]}
+    fi
+}
+
+branch-save() {
+  printf "%s\n" "${local[@]}" > "/Users/Brent/.branchlocal"
+  printf "%s\n" "${progress[@]}" > "/Users/Brent/.branchprogress"
+  printf "%s\n" "${priority[@]}" > "/Users/Brent/.branchpriority"
+}
+
+branch-init() {
+  local=(`cat "/Users/Brent/.branchlocal"`)
+  progress=(`cat "/Users/Brent/.branchprogress"`)
+  priority=(`cat "/Users/Brent/.branchpriority"`)
+}
+
+branch-man() {
+  echo "  COMMANDS:"
+  echo "    - develop: switch to develop and pull"
+  echo "    - develop-n(ew) [name]: create a new tracked branch from develop"
+  echo "    - hotfix-n [name]: create a new tracked branch from master"
+  echo "    - branch: show current branch name"
+  echo "    - branch-save: write local/progress to file"
+  echo "    - branch-init: fill local/progress from file"
+  echo "    - branch-l: list current branches"
+  echo "    - branch-n(ew) [name]: create a new tracked branch off current branch"
+  echo "    - branch-c [regex]: remove all branches matching regex from tracking"
+  echo "    - branch-a [branch]: add existing branch to tracking"
+  echo "    - branch-m [new-name]: rename current branch, update tracking"
+  echo "    - branch-na: stop tracking all branches"
+  echo "    - prioritize [l/p] [num]: adds tracked branch to a list of priority branches"
+  echo "    - normalize [regex]: removes mathing branch from the list of priority branches"
+  echo "    - push: push current branch, create origin if not exists"
+  echo "    - checkout [l/p/s] [num]: checkout (l)local, p(progress) s(priority) branch [num]"
+  echo "    - set-feature: sets current branch as 'feature' branch BROKEN"
+  echo "    - feature-n(ew) [branch-name]: creates a new branch off of the current feature branch BROKEN"
+}
+
+alias develop='git checkout develop && git pull'
+alias develop-new='develop-n'
+alias branch-new='branch-n'
+alias hotfix-new='hotfix-n'
+alias feature-new='feature-n'
